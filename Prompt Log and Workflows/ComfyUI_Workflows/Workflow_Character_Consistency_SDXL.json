@@ -1,0 +1,176 @@
+{
+  "workflow_name": "Articog_Character_Consistency_Pipeline_v2",
+  "author": "AI Creative Intern Applicant",
+  "target_character": "C1_Maya_Sen",
+  "description": "Production-grade node graph combining SDXL base checkpoint, IPAdapter FaceID for facial geometry locking, OpenPose ControlNet for precise stance direction, and FaceDetailer for 4K film texture refinement.",
+  "nodes": {
+    "1": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd_xl_base_1.0.safetensors"
+      }
+    },
+    "2": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "sdxl_vae.safetensors"
+      }
+    },
+    "3": {
+      "class_type": "CLIPTextEncode",
+      "title": "Positive Prompt - Maya C1",
+      "inputs": {
+        "text": "cinematic 16:9 photo of Maya (C1), 22yo South Asian woman in washed olive utility overshirt, white tee, dark denim, wavy dark hair in messy functional topknot, kneeling on sidewalk planting sapling, warm morning rim sunlight, 35mm film grain, 8k",
+        "clip": [
+          "1",
+          1
+        ]
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "title": "Negative Prompt",
+      "inputs": {
+        "text": "deformed, bad anatomy, plastic skin sheen, extra fingers, cartoon, 3d render, oversaturated neon, waxy, blurry, bad eyes",
+        "clip": [
+          "1",
+          1
+        ]
+      }
+    },
+    "5": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1920,
+        "height": 1080,
+        "batch_size": 1
+      }
+    },
+    "6": {
+      "class_type": "ControlNetLoader",
+      "inputs": {
+        "control_net_name": "controlnet-openpose-sdxl-1.0.safetensors"
+      }
+    },
+    "7": {
+      "class_type": "ControlNetApplyAdvanced",
+      "inputs": {
+        "positive": [
+          "3",
+          0
+        ],
+        "negative": [
+          "4",
+          0
+        ],
+        "control_net": [
+          "6",
+          0
+        ],
+        "strength": 0.75,
+        "start_percent": 0.0,
+        "end_percent": 0.8
+      }
+    },
+    "8": {
+      "class_type": "IPAdapterModelLoader",
+      "inputs": {
+        "ipadapter_file": "ip-adapter-faceid-plusv2_sdxl.bin"
+      }
+    },
+    "9": {
+      "class_type": "IPAdapterApplyFaceID",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "ipadapter": [
+          "8",
+          0
+        ],
+        "image": "maya_reference_face_c1.png",
+        "weight": 0.85,
+        "weight_type": "linear"
+      }
+    },
+    "10": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "9",
+          0
+        ],
+        "positive": [
+          "7",
+          0
+        ],
+        "negative": [
+          "7",
+          1
+        ],
+        "latent_image": [
+          "5",
+          0
+        ],
+        "seed": 4294967295,
+        "steps": 32,
+        "cfg": 4.5,
+        "sampler_name": "dpmpp_2m_karras",
+        "scheduler": "karras",
+        "denoise": 1.0
+      }
+    },
+    "11": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "10",
+          0
+        ],
+        "vae": [
+          "2",
+          0
+        ]
+      }
+    },
+    "12": {
+      "class_type": "FaceDetailer",
+      "inputs": {
+        "image": [
+          "11",
+          0
+        ],
+        "model": [
+          "1",
+          0
+        ],
+        "clip": [
+          "1",
+          1
+        ],
+        "vae": [
+          "2",
+          0
+        ],
+        "guide_size": 512,
+        "max_size": 1024,
+        "seed": 1024,
+        "steps": 20,
+        "cfg": 4.0,
+        "sampler_name": "euler",
+        "denoise": 0.35
+      }
+    },
+    "13": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "Articog_Maya_C1_Shot",
+        "images": [
+          "12",
+          0
+        ]
+      }
+    }
+  }
+}
